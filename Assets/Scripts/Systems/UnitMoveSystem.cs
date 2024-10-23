@@ -1,4 +1,3 @@
-using MonoBehaviours;
 using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -9,17 +8,15 @@ namespace Systems {
   partial struct UnitMoveSystem : ISystem {
     [BurstCompile]
     public void OnUpdate(ref SystemState state) {
-      foreach ((RefRW<LocalTransform> localTransform, RefRO<MoveSpeed> movementSpeed, RefRW<PhysicsVelocity> velocity) in SystemAPI
-                 .Query<RefRW<LocalTransform>, RefRO<MoveSpeed>, RefRW<PhysicsVelocity>>()) {
-        float3 targetPosition = MouseWorldPosition.Instance.GetPosition();
-        float3 movementDirection = targetPosition - localTransform.ValueRO.Position;
+      foreach ((RefRW<LocalTransform> localTransform, RefRO<UnitMover> unitMover, RefRW<PhysicsVelocity> velocity) in SystemAPI
+                 .Query<RefRW<LocalTransform>, RefRO<UnitMover>, RefRW<PhysicsVelocity>>()) {
+        float3 movementDirection = unitMover.ValueRO.targetPosition - localTransform.ValueRO.Position;
         movementDirection = math.normalize(movementDirection);
-        float rotationSpeed = 10.0f;
 
         localTransform.ValueRW.Rotation = math.slerp(localTransform.ValueRO.Rotation, quaternion.LookRotation(movementDirection, math.up()),
-          SystemAPI.Time.DeltaTime * rotationSpeed);
+          SystemAPI.Time.DeltaTime * unitMover.ValueRO.rotationSpeed);
 
-        velocity.ValueRW.Linear = movementDirection * movementSpeed.ValueRO.value;
+        velocity.ValueRW.Linear = movementDirection * unitMover.ValueRO.moveSpeed;
         velocity.ValueRW.Angular = float3.zero;
         // localTransform.ValueRW.Position += movementDirection * movementSpeed.ValueRO.value * SystemAPI.Time.DeltaTime;
       }
